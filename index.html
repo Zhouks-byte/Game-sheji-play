@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10151e">
+  <meta name="description" content="一款无需安装、打开即玩的中文像素横版射击游戏。">
+  <title>余烬前线 · 像素横版射击</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      background: #10151e;
+      color: #f5f3e9;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      --muted: #abb4bf;
+      --orange: #ffb454;
+      --panel: rgba(17, 24, 34, .88);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(57, 77, 97, .3), transparent 58%),
+        #10151e;
+    }
+
+    button { font: inherit; }
+
+    .game-shell {
+      width: min(1120px, 100%);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(191, 211, 226, .2);
+      border-radius: 18px;
+      background: #151d28;
+      box-shadow: 0 26px 90px rgba(0, 0, 0, .48), 0 0 0 5px rgba(255, 255, 255, .025);
+    }
+
+    .topbar {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 22px;
+      border-bottom: 1px solid rgba(191, 211, 226, .1);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .035), transparent);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 180, 84, .45);
+      border-radius: 10px;
+      color: var(--orange);
+      background: rgba(255, 180, 84, .1);
+      font-size: 20px;
+    }
+    .brand-copy { min-width: 0; }
+    .brand-copy strong { display: block; font-size: 15px; letter-spacing: .08em; }
+    .brand-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; letter-spacing: .12em; }
+
+    .hud { display: flex; align-items: center; gap: clamp(12px, 3vw, 32px); }
+    .stat { min-width: 70px; }
+    .stat-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 10px; letter-spacing: .16em; }
+    .stat-value { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .health-value { display: flex; align-items: center; gap: 3px; }
+    .heart { color: #ff6672; font-size: 14px; text-shadow: 0 0 12px rgba(255, 102, 114, .35); }
+    .heart.empty { color: #45505e; text-shadow: none; }
+    .ammo-value { color: var(--orange); }
+
+    .arena {
+      height: clamp(360px, 62vh, 620px);
+      min-height: 360px;
+      position: relative;
+      overflow: hidden;
+      background: #192431;
+      isolation: isolate;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: linear-gradient(90deg, rgba(11, 16, 23, .68), rgba(11, 16, 23, .25) 60%, rgba(11, 16, 23, .52));
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+    .screen[hidden] { display: none; }
+    .screen-card {
+      width: min(520px, 100%);
+      padding: clamp(22px, 4vw, 38px);
+      border: 1px solid rgba(211, 226, 237, .2);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, .35);
+      backdrop-filter: blur(12px);
+      animation: card-enter .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .eyebrow { margin: 0 0 10px; color: var(--orange); font-size: 11px; font-weight: 800; letter-spacing: .22em; }
+    h1 { margin: 0; font-size: clamp(30px, 6vw, 48px); line-height: 1.1; letter-spacing: .04em; }
+    .intro { max-width: 390px; margin: 14px 0 24px; color: #c0c8d0; font-size: 14px; line-height: 1.8; }
+    .control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .control {
+      min-height: 58px;
+      padding: 10px 12px;
+      border: 1px solid rgba(199, 216, 229, .12);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .035);
+    }
+    .control kbd {
+      display: inline-block;
+      min-width: 26px;
+      margin-right: 5px;
+      padding: 3px 6px;
+      border: 1px solid rgba(218, 231, 240, .22);
+      border-radius: 5px;
+      color: #f5f3e9;
+      background: rgba(255, 255, 255, .08);
+      font: 700 11px ui-monospace, monospace;
+      text-align: center;
+    }
+    .control span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .primary-button {
+      width: 100%;
+      min-height: 48px;
+      border: 0;
+      border-radius: 9px;
+      color: #20202a;
+      background: linear-gradient(135deg, #ffd08a, #ffab46);
+      box-shadow: 0 8px 24px rgba(255, 164, 66, .2);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .primary-button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .primary-button:active { transform: translateY(0); }
+    .primary-button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+    .bottom-bar {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 20px;
+      color: var(--muted);
+      font-size: 11px;
+      background: #151d28;
+    }
+    .bottom-bar strong { color: #e4e7e9; font-weight: 650; }
+    .status { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #72d6a0; box-shadow: 0 0 10px rgba(114, 214, 160, .6); }
+    .toast {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      z-index: 1;
+      padding: 8px 13px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 20px;
+      color: #fff;
+      background: rgba(14, 20, 29, .72);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -6px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+    @keyframes card-enter { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @media (max-width: 560px) {
+      body { padding: 0; }
+      .game-shell { min-height: 100vh; min-height: 100dvh; border: 0; border-radius: 0; display: flex; flex-direction: column; }
+      .topbar { min-height: 68px; padding: 12px 15px; }
+      .arena { flex: 1; height: auto; min-height: 360px; }
+      .hud { gap: 12px; }
+      .stat { min-width: 48px; }
+      .stat-label { font-size: 9px; }
+      .stat-value { font-size: 13px; }
+      .bottom-bar { padding: 10px 14px; font-size: 10px; }
+      .bottom-hint { display: none; }
+      .screen { padding: 15px; }
+      .screen-card { padding: 21px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell" aria-label="余烬前线像素射击游戏">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div class="brand-copy">
+          <strong>余烬前线</strong>
+          <span>像素生存 · 第七码头</span>
+        </div>
+      </div>
+      <div class="hud" aria-live="polite">
+        <div class="stat">
+          <span class="stat-label">生命</span>
+          <span class="stat-value health-value" id="health"></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">弹药</span>
+          <span class="stat-value ammo-value" id="ammo">12 / 12</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">击破</span>
+          <span class="stat-value" id="score">00</span>
+        </div>
+      </div>
+    </header>
+    <section class="arena" aria-label="游戏区域">
+      <canvas id="game" aria-label="游戏画面"></canvas>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="screen" id="screen">
+        <div class="screen-card">
+          <p class="eyebrow" id="screen-eyebrow">夜幕降临 · 守住阵地</p>
+          <h1 id="screen-title">余烬前线</h1>
+          <p class="intro" id="screen-intro">废墟中的感染者正在逼近。灵活移动、瞄准射击，坚持到击破 30 个目标，即可守住第七码头。</p>
+          <div class="control-grid" id="controls">
+            <div class="control"><kbd>A</kbd><kbd>D</kbd><span>向左 / 向右移动</span></div>
+            <div class="control"><kbd>W</kbd><span>跳跃躲避</span></div>
+            <div class="control"><kbd>S</kbd><span>下蹲避弹</span></div>
+            <div class="control"><kbd>鼠标左键</kbd><span>瞄准并射击</span></div>
+          </div>
+          <button class="primary-button" id="start" type="button">进入战场</button>
+        </div>
+      </div>
+    </section>
+    <footer class="bottom-bar">
+      <span class="bottom-hint">弹匣耗尽后自动装填 · 远程敌人会向你开火</span>
+      <span class="status"><i class="status-dot" aria-hidden="true"></i><strong id="game-status">等待出击</strong></span>
+    </footer>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.querySelector("#game");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const arena = document.querySelector(".arena");
+      const screen = document.querySelector("#screen");
+      const startButton = document.querySelector("#start");
+      const healthLabel = document.querySelector("#health");
+      const ammoLabel = document.querySelector("#ammo");
+      const scoreLabel = document.querySelector("#score");
+      const statusLabel = document.querySelector("#game-status");
+      const toast = document.querySelector("#toast");
+      const MAX_HEALTH = 5;
+      const MAGAZINE_SIZE = 12;
+      const WIN_SCORE = 30;
+      const FRAME_INTERVAL = 1000 / 90;
+      const keys = new Set();
+      const bullets = [];
+      const enemies = [];
+      const particles = [];
+      const drops = [];
+      const player = { x: 100, y: 0, w: 26, h: 46, vy: 0, health: MAX_HEALTH, ammo: MAGAZINE_SIZE, score: 0, invulnerable: 0, reload: 0, fireCooldown: 0, crouching: false };
+      let width = 0;
+      let height = 0;
+      let floorY = 0;
+      let mode = "menu";
+      let lastFrame = 0;
+      let frameBudget = 0;
+      let elapsed = 0;
+      let spawnTimer = 0;
+      let shooting = false;
+      let pointer = { x: 0, y: 0 };
+      let toastTimer = 0;
+      let shake = 0;
+      let hudCache = "";
+
+      const random = (min, max) => Math.random() * (max - min) + min;
+
+      function resize() {
+        const rect = arena.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        width = rect.width;
+        height = rect.height;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        floorY = height - Math.max(48, Math.min(76, height * 0.13));
+        if (player.y > floorY - player.h || player.y === 0) player.y = floorY - player.h;
+        player.x = Math.max(18, Math.min(width - player.w - 18, player.x));
+      }
+
+      function updateHud() {
+        const hearts = "♥".repeat(player.health) + "♥".repeat(MAX_HEALTH - player.health);
+        const key = `${player.health}:${player.ammo}:${player.score}:${mode}:${player.reload > 0}`;
+        if (key === hudCache) return;
+        hudCache = key;
+        healthLabel.replaceChildren(...Array.from(hearts, (_, index) => {
+          const heart = document.createElement("span");
+          heart.className = `heart${index >= player.health ? " empty" : ""}`;
+          heart.textContent = "♥";
+          heart.setAttribute("aria-hidden", "true");
+          return heart;
+        }));
+        healthLabel.setAttribute("aria-label", `生命 ${player.health}/${MAX_HEALTH}`);
+        ammoLabel.textContent = player.reload > 0 ? "装填中…" : `${player.ammo} / ${MAGAZINE_SIZE}`;
+        scoreLabel.textContent = String(player.score).padStart(2, "0");
+      }
+
+      function showToast(message, duration = 1.3) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        toastTimer = duration;
+      }
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        hudCache = "";
+        if (nextMode === "playing") {
+          screen.hidden = true;
+          statusLabel.textContent = "交火中";
+        } else if (nextMode === "menu") {
+          statusLabel.textContent = "等待出击";
+        } else {
+          statusLabel.textContent = nextMode === "won" ? "阵地守住了" : "任务结束";
+          document.querySelector("#screen-eyebrow").textContent = nextMode === "won" ? "任务完成 · 第七码头仍在" : "信号中断 · 阵地失守";
+          document.querySelector("#screen-title").textContent = nextMode === "won" ? "你守住了！" : "再试一次";
+          document.querySelector("#screen-intro").textContent = nextMode === "won"
+            ? `你击破了 ${player.score} 个感染者，成功守住第七码头。`
+            : `本次击破 ${player.score} 个感染者。整备好后，再次守住阵地。`;
+          document.querySelector("#controls").hidden = true;
+          startButton.textContent = "重新出击";
+          screen.hidden = false;
+        }
+        updateHud();
+      }
+
+      function resetGame() {
+        player.x = width * .18;
+        player.y = floorY - player.h;
+        player.vy = 0;
+        player.health = MAX_HEALTH;
+        player.ammo = MAGAZINE_SIZE;
+        player.score = 0;
+        player.invulnerable = 0;
+        player.reload = 0;
+        player.fireCooldown = 0;
+        player.crouching = false;
+        bullets.length = 0;
+        enemies.length = 0;
+        particles.length = 0;
+        drops.length = 0;
+        elapsed = 0;
+        spawnTimer = .5;
+        shooting = false;
+        setMode("playing");
+        showToast("感染者接近，守住阵地！", 2);
+      }
+
+      function spawnEnemy() {
+        if (enemies.length >= 7) return;
+        const ranged = Math.random() < Math.min(.48, .2 + elapsed / 150);
+        const spawnOnRight = Math.random() < .72;
+        const x = spawnOnRight ? width + 20 : -36;
+        const enemy = {
+          x, y: floorY - 36, w: ranged ? 25 : 24, h: ranged ? 37 : 34,
+          speed: ranged ? random(20, 31) : random(34, 53),
+          health: ranged ? 2 : 1, ranged, attack: random(.7, 1.7), flash: 0, phase: random(0, 6.28)
+        };
+        enemies.push(enemy);
+      }
+
+      function addBurst(x, y, color, count = 7) {
+        for (let i = 0; i < count; i++) {
+          particles.push({ x, y, vx: random(-90, 90), vy: random(-145, 25), life: random(.2, .48), maxLife: .48, color, size: random(2, 5) });
+        }
+      }
+
+      function shoot() {
+        if (mode !== "playing" || player.reload > 0 || player.fireCooldown > 0) return;
+        if (player.ammo <= 0) {
+          player.reload = 1.05;
+          showToast("弹匣耗尽，正在自动装填");
+          updateHud();
+          return;
+        }
+        player.ammo--;
+        player.fireCooldown = .19;
+        const playerHeight = player.crouching ? 29 : player.h;
+        const originX = player.x + player.w / 2 + 9;
+        const originY = (player.crouching ? floorY - playerHeight : player.y) + playerHeight * .4;
+        const angle = Math.atan2(pointer.y - originY, pointer.x - originX);
+        const directionX = Math.cos(angle);
+        const directionY = Math.sin(angle);
+        bullets.push({ x: originX, y: originY, vx: directionX * 630, vy: directionY * 630, life: 1.2, friendly: true });
+        addBurst(originX + directionX * 15, originY + directionY * 15, "#ffd17a", 3);
+        updateHud();
+      }
+
+      function hitPlayer() {
+        if (player.invulnerable > 0 || mode !== "playing") return;
+        player.health--;
+        player.invulnerable = 1.05;
+        shake = .25;
+        addBurst(player.x + player.w / 2, player.y + player.h / 2, "#ff6571", 10);
+        if (player.health <= 0) setMode("lost");
+        else showToast("受到攻击！注意躲避");
+        updateHud();
+      }
+
+      function update(dt) {
+        if (mode !== "playing") return;
+        elapsed += dt;
+        player.fireCooldown = Math.max(0, player.fireCooldown - dt);
+        player.invulnerable = Math.max(0, player.invulnerable - dt);
+        if (player.reload > 0) {
+          player.reload -= dt;
+          if (player.reload <= 0) {
+            player.reload = 0;
+            player.ammo = MAGAZINE_SIZE;
+            showToast("装填完成");
+            updateHud();
+          }
+        }
+
+        const move = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
+        player.crouching = keys.has("KeyS") && player.y >= floorY - player.h - 1;
+        player.x += move * (player.crouching ? 145 : 215) * dt;
+        player.x = Math.max(12, Math.min(width - player.w - 12, player.x));
+        if (keys.has("KeyW") && player.y >= floorY - player.h - 1 && !player.crouching) player.vy = -420;
+        player.vy += 1050 * dt;
+        player.y += player.vy * dt;
+        if (player.y > floorY - player.h) {
+          player.y = floorY - player.h;
+          player.vy = 0;
+        }
+
+        if (shooting) shoot();
+        spawnTimer -= dt;
+        if (spawnTimer <= 0) {
+          spawnEnemy();
+          spawnTimer = Math.max(.72, random(1.35, 2.05) - Math.min(.55, elapsed / 105));
+        }
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const bullet = bullets[i];
+          bullet.x += bullet.vx * dt;
+          bullet.y += bullet.vy * dt;
+          bullet.life -= dt;
+          if (bullet.friendly) {
+            const target = enemies.find(enemy => bullet.x >= enemy.x && bullet.x <= enemy.x + enemy.w && bullet.y >= enemy.y && bullet.y <= enemy.y + enemy.h);
+            if (target) {
+              target.health--;
+              target.flash = .1;
+              addBurst(bullet.x, bullet.y, target.ranged ? "#c7e18c" : "#91cd9b", 4);
+              bullets.splice(i, 1);
+              if (target.health <= 0) {
+                enemies.splice(enemies.indexOf(target), 1);
+                player.score++;
+                addBurst(target.x + target.w / 2, target.y + target.h / 2, "#a4e0a4", 9);
+                if (Math.random() < .12) drops.push({ x: target.x, y: target.y, life: 9 });
+                updateHud();
+                if (player.score >= WIN_SCORE) setMode("won");
+              }
+              continue;
+            }
+          } else {
+            const playerTop = player.crouching ? floorY - 29 : player.y;
+            if (bullet.x < player.x + player.w && bullet.x + 5 > player.x && bullet.y < playerTop + (player.crouching ? 29 : player.h) && bullet.y + 5 > playerTop) {
+              bullets.splice(i, 1);
+              hitPlayer();
+              continue;
+            }
+          }
+          if (bullet.life <= 0 || bullet.x < -20 || bullet.x > width + 20 || bullet.y < -20 || bullet.y > height + 20) bullets.splice(i, 1);
+        }
+
+        for (const enemy of enemies) {
+          enemy.flash = Math.max(0, enemy.flash - dt);
+          enemy.phase += dt * 7;
+          const dx = player.x - enemy.x;
+          if (!enemy.ranged || Math.abs(dx) > 205) {
+            enemy.x += Math.sign(dx) * enemy.speed * dt;
+          } else {
+            enemy.attack -= dt;
+            if (enemy.attack <= 0) {
+              const startX = enemy.x + enemy.w / 2;
+              const startY = enemy.y + 13;
+              const aimX = player.x + player.w / 2;
+              const aimY = player.y + player.h * .45;
+              const angle = Math.atan2(aimY - startY, aimX - startX);
+              bullets.push({ x: startX, y: startY, vx: Math.cos(angle) * 205, vy: Math.sin(angle) * 205, life: 2.1, friendly: false });
+              enemy.attack = random(1.5, 2.5);
+            }
+          }
+          const playerTop = player.crouching ? floorY - 29 : player.y;
+          const playerH = player.crouching ? 29 : player.h;
+          if (enemy.x < player.x + player.w - 3 && enemy.x + enemy.w > player.x + 3 && enemy.y < playerTop + playerH && enemy.y + enemy.h > playerTop + 5) hitPlayer();
+        }
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          if (enemies[i].x < -60 || enemies[i].x > width + 60) enemies.splice(i, 1);
+        }
+
+        for (let i = drops.length - 1; i >= 0; i--) {
+          const drop = drops[i];
+          drop.life -= dt;
+          const playerTop = player.crouching ? floorY - 29 : player.y;
+          if (drop.x < player.x + player.w && drop.x + 16 > player.x && drop.y < playerTop + (player.crouching ? 29 : player.h) && drop.y + 16 > playerTop) {
+            player.health = Math.min(MAX_HEALTH, player.health + 1);
+            drops.splice(i, 1);
+            showToast("拾取补给：生命恢复");
+            updateHud();
+          } else if (drop.life <= 0) drops.splice(i, 1);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const particle = particles[i];
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.vy += 310 * dt;
+          particle.life -= dt;
+          if (particle.life <= 0) particles.splice(i, 1);
+        }
+        if (toastTimer > 0) {
+          toastTimer -= dt;
+          if (toastTimer <= 0) toast.classList.remove("visible");
+        }
+        shake = Math.max(0, shake - dt);
+      }
+
+      function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, "#202d3c");
+        sky.addColorStop(.65, "#44505a");
+        sky.addColorStop(1, "#77705e");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(255, 193, 124, .12)";
+        ctx.beginPath();
+        ctx.arc(width * .76, height * .25, Math.min(width, height) * .105, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#eabf86";
+        ctx.fillRect(width * .76 - 18, height * .25 - 18, 36, 36);
+        ctx.fillStyle = "#d1ad84";
+        ctx.fillRect(width * .76 - 14, height * .25 - 22, 28, 4);
+
+        const skyline = [
+          [.02, .52, .16, .25], [.2, .41, .14, .36], [.39, .55, .12, .22],
+          [.54, .39, .19, .38], [.84, .49, .2, .28]
+        ];
+        for (const [x, y, w, h] of skyline) {
+          const bx = Math.round(width * x);
+          const by = Math.round(floorY * y);
+          const bw = Math.round(width * w);
+          const bh = Math.round(floorY * h);
+          ctx.fillStyle = "#303a43";
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.fillStyle = "#3b4650";
+          ctx.fillRect(bx, by, bw, 5);
+          ctx.fillStyle = "rgba(255, 190, 112, .3)";
+          for (let wx = bx + 12; wx < bx + bw - 5; wx += 22) {
+            for (let wy = by + 15; wy < by + bh - 6; wy += 24) {
+              if ((wx + wy) % 3 !== 0) ctx.fillRect(wx, wy, 7, 9);
+            }
+          }
+        }
+
+        ctx.fillStyle = "#41453f";
+        ctx.fillRect(0, floorY, width, height - floorY);
+        ctx.fillStyle = "#67614e";
+        ctx.fillRect(0, floorY, width, 5);
+        ctx.fillStyle = "rgba(219, 186, 125, .25)";
+        for (let x = 9; x < width; x += 51) {
+          ctx.fillRect(x, floorY + 17 + (x % 3) * 6, 17 + x % 15, 2);
+        }
+        ctx.fillStyle = "rgba(20, 26, 31, .22)";
+        ctx.fillRect(0, floorY + 5, width, 2);
+      }
+
+      function drawPlayer() {
+        const crouch = player.crouching;
+        const h = crouch ? 29 : player.h;
+        const y = crouch ? floorY - h : player.y;
+        const x = Math.round(player.x);
+        if (player.invulnerable > 0 && Math.floor(player.invulnerable * 13) % 2 === 0) return;
+
+        ctx.fillStyle = "rgba(0, 0, 0, .22)";
+        ctx.fillRect(x - 4, floorY - 3, player.w + 10, 4);
+        ctx.fillStyle = "#293440";
+        ctx.fillRect(x + 5, y + h - 14, 7, 14);
+        ctx.fillRect(x + 16, y + h - 14, 7, 14);
+        ctx.fillStyle = "#758392";
+        ctx.fillRect(x + 4, y + h - 5, 10, 5);
+        ctx.fillRect(x + 15, y + h - 5, 10, 5);
+        ctx.fillStyle = "#d9a56e";
+        ctx.fillRect(x + 8, y + 2, 14, 13);
+        ctx.fillStyle = "#465c6a";
+        ctx.fillRect(x + 5, y + (crouch ? 12 : 14), 18, crouch ? 10 : 19);
+        ctx.fillStyle = "#89a0aa";
+        ctx.fillRect(x + 5, y + (crouch ? 12 : 14), 18, 4);
+        ctx.fillStyle = "#303c49";
+        ctx.fillRect(x + 8, y + 4, 16, 6);
+        ctx.fillStyle = "#e9c092";
+        ctx.fillRect(x + 20, y + 9, 4, 3);
+        const gunY = y + (crouch ? 17 : 21);
+        const aim = Math.atan2(pointer.y - gunY, pointer.x - (x + 20));
+        ctx.save();
+        ctx.translate(x + 19, gunY);
+        ctx.rotate(aim);
+        ctx.fillStyle = "#272f38";
+        ctx.fillRect(0, -3, 19, 6);
+        ctx.fillStyle = "#7d8c91";
+        ctx.fillRect(3, -4, 10, 2);
+        ctx.restore();
+      }
+
+      function drawEnemy(enemy) {
+        const x = Math.round(enemy.x);
+        const step = Math.sin(enemy.phase) > 0 ? 2 : 0;
+        const color = enemy.flash > 0 ? "#f9e6ba" : enemy.ranged ? "#8d9d68" : "#71866a";
+        ctx.fillStyle = "rgba(0, 0, 0, .2)";
+        ctx.fillRect(x - 3, floorY - 2, enemy.w + 7, 3);
+        ctx.fillStyle = "#313c38";
+        ctx.fillRect(x + 4, enemy.y + enemy.h - 11, 7, 11 - step);
+        ctx.fillRect(x + 15, enemy.y + enemy.h - 11, 7, 11 - (2 - step));
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 3, enemy.y + 10, enemy.w - 6, enemy.h - 18);
+        ctx.fillRect(x + 5, enemy.y + 2, enemy.w - 8, 12);
+        ctx.fillStyle = "#c1aa80";
+        ctx.fillRect(x + 7, enemy.y + 5, enemy.w - 12, 4);
+        ctx.fillStyle = "#ed7569";
+        ctx.fillRect(x + (enemy.x < player.x ? 7 : enemy.w - 10), enemy.y + 7, 3, 3);
+        if (enemy.ranged) {
+          ctx.fillStyle = "#373d36";
+          ctx.fillRect(x + (enemy.x < player.x ? -7 : enemy.w - 1), enemy.y + 15, 10, 4);
+          ctx.fillStyle = "#d8b967";
+          ctx.fillRect(x + enemy.w / 2 - 3, enemy.y - 5, 6, 3);
+        }
+      }
+
+      function render() {
+        ctx.save();
+        if (shake > 0) ctx.translate(random(-3, 3) * shake * 4, random(-2, 2) * shake * 4);
+        drawBackground();
+        for (const drop of drops) {
+          ctx.fillStyle = "#65d6a0";
+          ctx.fillRect(Math.round(drop.x), Math.round(drop.y), 14, 14);
+          ctx.fillStyle = "#e0ffba";
+          ctx.fillRect(Math.round(drop.x) + 5, Math.round(drop.y) - 4, 4, 22);
+          ctx.fillRect(Math.round(drop.x) + 1, Math.round(drop.y) + 5, 12, 4);
+        }
+        for (const enemy of enemies) drawEnemy(enemy);
+        drawPlayer();
+        for (const bullet of bullets) {
+          ctx.fillStyle = bullet.friendly ? "#ffda88" : "#ff7770";
+          ctx.fillRect(Math.round(bullet.x), Math.round(bullet.y), bullet.friendly ? 7 : 6, 3);
+          ctx.fillStyle = bullet.friendly ? "rgba(255, 207, 120, .28)" : "rgba(255, 90, 90, .28)";
+          ctx.fillRect(Math.round(bullet.x - bullet.vx * .015), Math.round(bullet.y - bullet.vy * .015), 9, 2);
+        }
+        for (const particle of particles) {
+          ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(Math.round(particle.x), Math.round(particle.y), particle.size, particle.size);
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+
+      function frame(timestamp) {
+        requestAnimationFrame(frame);
+        if (!lastFrame) lastFrame = timestamp;
+        frameBudget += timestamp - lastFrame;
+        lastFrame = timestamp;
+        if (frameBudget < FRAME_INTERVAL) return;
+        const dt = Math.min(frameBudget / 1000, .05);
+        frameBudget %= FRAME_INTERVAL;
+        update(dt);
+        render();
+      }
+
+      function updatePointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = event.clientX - rect.left;
+        pointer.y = event.clientY - rect.top;
+      }
+
+      startButton.addEventListener("click", () => {
+        document.querySelector("#screen-eyebrow").textContent = "夜幕降临 · 守住阵地";
+        document.querySelector("#screen-title").textContent = "余烬前线";
+        document.querySelector("#screen-intro").textContent = "废墟中的感染者正在逼近。灵活移动、瞄准射击，坚持到击破 30 个目标，即可守住第七码头。";
+        document.querySelector("#controls").hidden = false;
+        resetGame();
+      });
+      window.addEventListener("resize", resize);
+      window.addEventListener("keydown", event => {
+        if (["KeyA", "KeyD", "KeyS", "KeyW", "Space"].includes(event.code)) event.preventDefault();
+        keys.add(event.code);
+      });
+      window.addEventListener("keyup", event => keys.delete(event.code));
+      window.addEventListener("blur", () => { keys.clear(); shooting = false; });
+      canvas.addEventListener("pointermove", updatePointer);
+      canvas.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        updatePointer(event);
+        shooting = true;
+        shoot();
+      });
+      window.addEventListener("pointerup", event => { if (event.button === 0) shooting = false; });
+      canvas.addEventListener("contextmenu", event => event.preventDefault());
+
+      resize();
+      player.x = width * .18;
+      updateHud();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
