@@ -372,7 +372,7 @@
         player.health = MAX_HEALTH;
         player.ammo = MAGAZINE_SIZE;
         player.score = 0;
-        player.invulnerable = 2.5;
+        player.invulnerable = 8;
         player.reload = 0;
         player.fireCooldown = 0;
         player.crouching = false;
@@ -381,7 +381,7 @@
         particles.length = 0;
         drops.length = 0;
         elapsed = 0;
-        spawnTimer = 2;
+        spawnTimer = 5;
         shooting = false;
         setMode("playing");
         showToast("感染者接近，守住阵地！", 2);
