@@ -107,8 +107,11 @@
       position: absolute;
       inset: 0;
       z-index: 2;
-      display: grid;
-      place-items: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 24px;
       background: linear-gradient(90deg, rgba(11, 16, 23, .68), rgba(11, 16, 23, .25) 60%, rgba(11, 16, 23, .52));
       transition: opacity .35s ease, visibility .35s ease;
@@ -123,6 +126,8 @@
       box-shadow: 0 22px 70px rgba(0, 0, 0, .35);
       backdrop-filter: blur(12px);
       animation: card-enter .45s cubic-bezier(.2,.8,.2,1) both;
+      margin: auto;
+      flex: 0 0 auto;
     }
     .eyebrow { margin: 0 0 10px; color: var(--orange); font-size: 11px; font-weight: 800; letter-spacing: .22em; }
     h1 { margin: 0; font-size: clamp(30px, 6vw, 48px); line-height: 1.1; letter-spacing: .04em; }
@@ -250,14 +255,14 @@
         <div class="screen-card">
           <p class="eyebrow" id="screen-eyebrow">夜幕降临 · 守住阵地</p>
           <h1 id="screen-title">余烬前线</h1>
-          <p class="intro" id="screen-intro">废墟中的感染者正在逼近。灵活移动、瞄准射击，坚持到击破 30 个目标，即可守住第七码头。</p>
+          <p class="intro" id="screen-intro">废墟中的感染者正在逼近。点击下方按钮开始游戏，使用 WASD 移动、鼠标左键射击，击破 30 个目标即可守住第七码头。</p>
+          <button class="primary-button" id="start" type="button">点击开始游戏</button>
           <div class="control-grid" id="controls">
             <div class="control"><kbd>A</kbd><kbd>D</kbd><span>向左 / 向右移动</span></div>
             <div class="control"><kbd>W</kbd><span>跳跃躲避</span></div>
             <div class="control"><kbd>S</kbd><span>下蹲避弹</span></div>
             <div class="control"><kbd>鼠标左键</kbd><span>瞄准并射击</span></div>
           </div>
-          <button class="primary-button" id="start" type="button">进入战场</button>
         </div>
       </div>
     </section>
@@ -718,7 +723,7 @@
       startButton.addEventListener("click", () => {
         document.querySelector("#screen-eyebrow").textContent = "夜幕降临 · 守住阵地";
         document.querySelector("#screen-title").textContent = "余烬前线";
-        document.querySelector("#screen-intro").textContent = "废墟中的感染者正在逼近。灵活移动、瞄准射击，坚持到击破 30 个目标，即可守住第七码头。";
+        document.querySelector("#screen-intro").textContent = "废墟中的感染者正在逼近。点击下方按钮开始游戏，使用 WASD 移动、鼠标左键射击，击破 30 个目标即可守住第七码头。";
         document.querySelector("#controls").hidden = false;
         resetGame();
       });
